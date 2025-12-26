@@ -46,7 +46,8 @@
           "project": "react-native",
           "organization": "elevanye"
         }
-      ]
+      ],
+      "sentry-expo"
     ],
     "experiments": {
       "typedRoutes": true,
