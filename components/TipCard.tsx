@@ -2,7 +2,7 @@ import { Link } from 'expo-router';
 import React from 'react';
 import { Text, TouchableOpacity, View } from 'react-native';
 
-// Define a type that handles both Appwrite Models and our Dummy Data structure
+// Define a type that handles our Tip structure
 export type Tip = {
     $id: string;
     sport: string;

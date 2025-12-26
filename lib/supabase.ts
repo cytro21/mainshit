@@ -1,3 +1,4 @@
+import AsyncStorage from '@react-native-async-storage/async-storage';
 import { createClient } from '@supabase/supabase-js';
 import { AppState } from 'react-native';
 import 'react-native-url-polyfill/auto';
@@ -7,14 +8,7 @@ const supabaseAnonKey = "eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJzdXBhYm
 
 export const supabase = createClient(supabaseUrl, supabaseAnonKey, {
     auth: {
-        storage: {
-            // TODO: Add AsyncStorage here if persistent sessions are needed.
-            // For now, using in-memory or default if no storage adapter provided (usually needs AsyncStorage)
-            // I will add a TODO to install AsyncStorage if persistence is required later.
-            getItem: (key) => null,
-            setItem: (key, value) => { },
-            removeItem: (key) => { },
-        },
+        storage: AsyncStorage,
         autoRefreshToken: true,
         persistSession: true,
         detectSessionInUrl: false,

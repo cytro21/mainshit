@@ -2,10 +2,18 @@ import { User } from '@supabase/supabase-js';
 import React, { createContext, ReactNode, useContext, useEffect, useState } from "react";
 import { supabase } from "../lib/supabase";
 
+interface UserCapabilities {
+    user_id: string;
+    can_sell: boolean;
+    can_publish: boolean;
+    can_receive_payments: boolean;
+}
+
 interface AuthContextType {
     isLogged: boolean;
     user: User | null;
     profile: any | null;
+    capabilities: UserCapabilities | null;
     loading: boolean;
     login: (email: string, pass: string) => Promise<void>;
     register: (email: string, pass: string, username: string) => Promise<void>;
@@ -31,6 +39,7 @@ export const GlobalProvider: React.FC<GlobalProviderProps> = ({ children }) => {
     const [isLogged, setIsLogged] = useState(false);
     const [user, setUser] = useState<User | null>(null);
     const [profile, setProfile] = useState<any | null>(null);
+    const [capabilities, setCapabilities] = useState<UserCapabilities | null>(null);
     const [loading, setLoading] = useState(true);
 
     const getCurrentUser = async () => {
@@ -49,14 +58,27 @@ export const GlobalProvider: React.FC<GlobalProviderProps> = ({ children }) => {
                     .single();
 
                 setProfile(profileData);
+
+                // Fetch capabilities
+                const { data: capabilitiesData } = await supabase
+                    .from('user_capabilities')
+                    .select('*')
+                    .eq('user_id', session.user.id)
+                    .single();
+
+                setCapabilities(capabilitiesData);
+
             } else {
                 setUser(null);
                 setProfile(null);
+                setCapabilities(null);
                 setIsLogged(false);
             }
         } catch (error) {
             console.log("Error getting user", error);
             setUser(null);
+            setProfile(null);
+            setCapabilities(null);
             setIsLogged(false);
         } finally {
             setLoading(false);
@@ -94,22 +116,8 @@ export const GlobalProvider: React.FC<GlobalProviderProps> = ({ children }) => {
             if (error) throw error;
 
             if (data.user) {
-                // Create profile manually (if triggers aren't set up yet)
-                const { error: profileError } = await supabase
-                    .from('profiles')
-                    .insert([
-                        {
-                            id: data.user.id,
-                            display_name: username,
-                            avatar_url: `https://ui-avatars.com/api/?name=${username}`
-                        }
-                    ]);
-
-                if (profileError) {
-                    console.error('Error creating profile:', profileError);
-                    // Don't throw here, user is created, just profile might be missing (can retry or use triggers)
-                }
-
+                // Triggers handle profile and capabilities creation now
+                // We just wait a brief moment or simply log in, expecting the triggers to fire efficiently
                 await login(email, pass);
             }
         } catch (error) {
@@ -125,6 +133,7 @@ export const GlobalProvider: React.FC<GlobalProviderProps> = ({ children }) => {
             await supabase.auth.signOut();
             setUser(null);
             setProfile(null);
+            setCapabilities(null);
             setIsLogged(false);
         } catch (error) {
             console.error(error);
@@ -136,7 +145,7 @@ export const GlobalProvider: React.FC<GlobalProviderProps> = ({ children }) => {
     useEffect(() => {
         getCurrentUser();
 
-        // Listen for auth changes (like token refresh or sign out from other tab)
+        // Listen for auth changes
         const { data: { subscription } } = supabase.auth.onAuthStateChange((_event, session) => {
             if (session?.user) {
                 setUser(session.user);
@@ -144,6 +153,8 @@ export const GlobalProvider: React.FC<GlobalProviderProps> = ({ children }) => {
             } else {
                 setUser(null);
                 setIsLogged(false);
+                setProfile(null);
+                setCapabilities(null);
             }
         });
 
@@ -158,6 +169,7 @@ export const GlobalProvider: React.FC<GlobalProviderProps> = ({ children }) => {
                 isLogged,
                 user,
                 profile,
+                capabilities,
                 loading,
                 login,
                 register,

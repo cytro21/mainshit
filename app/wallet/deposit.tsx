@@ -36,22 +36,28 @@ const DepositScreen = () => {
         }
 
         setSubmitting(true);
-        // Direct update for MVP - in prod use RPC/Edge Function
-        const newBalance = balance + depositAmount;
-        const { error } = await supabase
-            .from('wallets')
-            .update({ balance: newBalance })
-            .eq('user_id', user.id);
 
-        setSubmitting(false);
+        try {
+            // Secure RPC call to handle deposit server-side
+            const { error } = await supabase.rpc('deposit_funds', {
+                amount: depositAmount
+            });
 
-        if (error) {
+            if (error) throw error;
+
+            Alert.alert("Success", `$${depositAmount} added to your wallet!`);
+            // Optimistic update or refetch
+            setBalance(prev => prev + depositAmount);
+            setTimeout(() => {
+                fetchBalance(); // Verify with server
+                router.back();
+            }, 100);
+
+        } catch (error: any) {
             Alert.alert("Error", "Deposit failed. Please try again.");
             console.error(error);
-        } else {
-            Alert.alert("Success", `$${depositAmount} added to your wallet!`);
-            setBalance(newBalance);
-            router.back();
+        } finally {
+            setSubmitting(false);
         }
     };
 
